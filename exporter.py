@@ -20,7 +20,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Export a DB full of CTFd challenges and theirs attachments into a portable YAML formated specification file and an associated attachment directory')
     parser.add_argument('--app-root', dest='app_root', type=str, help="app_root directory for the CTFd Flask app (default: 2 directories up from this script)", default=None)
     parser.add_argument('-d', dest='db_uri', type=str, help="URI of the database where the challenges are stored")
-    parser.add_argument('-F', dest='in_file_dir', type=str, help="directory where challenge attachment files are stored")
+    parser.add_argument('-F', dest='src_attachments', type=str, help="directory where challenge attachment files are stored")
     parser.add_argument('-o', dest='out_file', type=str, help="name of the output YAML file (default: export.yaml)", default="export.yaml")
     parser.add_argument('-O', dest='dst_attachments', type=str, help="directory for output challenge attachments (default: [OUT_FILENAME].d)", default=None)
     parser.add_argument('--tar', dest='tar', help="if present, output to tar file", action='store_true')
@@ -28,20 +28,20 @@ def parse_args():
     return parser.parse_args()
 
 def process_args(args):
-    if not (args.db_uri and args.in_file_dir):
+    if not (args.db_uri and args.src_attachments):
         if args.app_root:
             app.root_path = os.path.abspath(args.app_root)
         else:
             abs_filepath = os.path.abspath(__file__)
             grandparent_dir = os.path.dirname(os.path.dirname(os.path.dirname(abs_filepath)))
             app.root_path = grandparent_dir
-        sys.path.append(app.root_path)
-        app.config.from_object("config.Config")
+        sys.path.append(os.path.dirname(app.root_path)) # Enable imports of CTFd modules
+        app.config.from_object("CTFd.config.Config")
 
     if args.db_uri:
         app.config['SQLALCHEMY_DATABASE_URI'] = args.db_uri
-    if not args.in_file_dir:
-        args.in_file_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    if not args.src_attachments:
+        args.src_attachments = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
     if not args.dst_attachments:
         args.dst_attachments = args.out_file.rsplit('.',1)[0]+'.d'
 
@@ -61,7 +61,9 @@ def tar_files(file_map, tarfile):
         tarfile.add(src_path, dst_path)
 
 
-def export_challenges(out_file, dst_attachments, in_file_dir, tarfile=None):
+def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
+    from CTFd.models import Challenges, Keys, Tags, Files, DatabaseError
+
     chals = Challenges.query.order_by(Challenges.value).all()
     chals_list = []
 
@@ -96,7 +98,7 @@ def export_challenges(out_file, dst_attachments, in_file_dir, tarfile=None):
         for src_path_rel in src_paths_rel:
             dirname, filename = os.path.split(src_path_rel)
             dst_dir = os.path.join(dst_attachments, dirname)
-            src_path = os.path.join(in_file_dir, src_path_rel)
+            src_path = os.path.join(src_attachments, src_path_rel)
             file_map[src_path] = os.path.join(dst_dir, filename)
 
             # Create path relative to the output file
@@ -136,14 +138,14 @@ if __name__ == "__main__":
 
     with app.app_context():
         args = process_args(args)
-        from models import db, Challenges, Keys, Tags, Files, DatabaseError
+        from CTFd.models import db
 
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         db.init_app(app)
 
         app.db = db
 
-        out_stream.write(export_challenges(args.out_file, args.dst_attachments, args.in_file_dir, tarfile))
+        out_stream.write(export_challenges(args.out_file, args.dst_attachments, args.src_attachments, tarfile))
 
     if args.tar:
         print("Tarballing exported files")
