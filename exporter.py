@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument('-d', dest='db_uri', type=str, help="URI of the database where the challenges are stored")
     parser.add_argument('-F', dest='in_file_dir', type=str, help="directory where challenge attachment files are stored")
     parser.add_argument('-o', dest='out_file', type=str, help="name of the output YAML file (default: export.yaml)", default="export.yaml")
-    parser.add_argument('-O', dest='out_file_dir', type=str, help="directory for output challenge attachments (default: export.d)", default="export.d")
+    parser.add_argument('-O', dest='out_file_dir', type=str, help="directory for output challenge attachments (default: [OUT_FILENAME].d)", default=None)
     parser.add_argument('--tar', dest='tar', help="if present, output to tar file", action='store_true')
     parser.add_argument('--gz', dest='gz', help="if present, compress the tar file (only used if '--tar' is on)", action='store_true')
     return parser.parse_args()
@@ -42,6 +42,8 @@ def process_args(args):
         app.config['SQLALCHEMY_DATABASE_URI'] = args.db_uri
     if not args.in_file_dir:
         args.in_file_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    if not args.out_file_dir:
+        args.out_file_dir = args.out_file.rsplit('.',1)[0]+'.d'
 
     return args
 
