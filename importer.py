@@ -101,16 +101,18 @@ if __name__ == "__main__":
                         else:
                             print "Skipping flag: Missing field 'flag'"
                             continue
+                    flag['flag'] = flag['flag'].strip()
                     if 'type' in flag == "REGEX":
                         flag['type'] = 1
                     else:
                         flag['type'] = 0
 
+                # We ignore traling and leading whitespace when importing challenges
                 chal_dbobj = Challenges(
-                    chal['name'],
-                    chal['description'],
+                    chal['name'].strip(),
+                    chal['description'].strip(),
                     chal['value'],
-                    chal['category'],
+                    chal['category'].strip(),
                     chal['flags']
                 )
 
