@@ -48,16 +48,16 @@ class MissingFieldError(Exception):
     def __str__(self):
         return "Error: Missing field '{}'".format(name)
 
-def import_challenges():
+def import_challenges(in_file, dst_attachments, exit_on_error=True):
     chals = []
-    with open(args.in_file, 'r') as in_stream:
+    with open(in_file, 'r') as in_stream:
         chals = yaml.safe_load_all(in_stream)
 
         for chal in chals:
             skip = False
             for req_field in req_fields:
                 if req_field not in chal:
-                    if args.exit_on_error:
+                    if exit_on_error:
                         raise MissingFieldError(req_field)
                     else:
                         print "Skipping challenge: Missing field '{}'".format(req_field)
@@ -68,7 +68,7 @@ def import_challenges():
 
             for flag in chal['flags']:
                 if 'flag' not in flag:
-                    if args.exit_on_error:
+                    if exit_on_error:
                         raise MissingFieldError('flag')
                     else:
                         print "Skipping flag: Missing field 'flag'"
@@ -111,13 +111,13 @@ def import_challenges():
 
                     hashes = []
                     for file_db in files_db:
-                        with open(os.path.join(args.dst_attachments, file_db), 'r') as f:
+                        with open(os.path.join(dst_attachments, file_db), 'r') as f:
                             hash = hashlib.md5(f.read()).digest()
                             hashes.append(hash)
 
                     mismatch = False
                     for file in chal['files']:
-                        filepath = os.path.join(os.path.dirname(args.in_file), file)
+                        filepath = os.path.join(os.path.dirname(in_file), file)
                         with open(filepath, 'r') as f:
                             hash = hashlib.md5(f.read()).digest()
                             if hash in hashes:
@@ -150,7 +150,7 @@ def import_challenges():
                     dst_filename = secure_filename(filename)
 
                     md5hash = hashlib.md5(os.urandom(64)).hexdigest()
-                    dst_dir = os.path.join(args.dst_attachments, md5hash)
+                    dst_dir = os.path.join(dst_attachments, md5hash)
 
                     while os.path.exists(dst_dir):
                         md5hash = hashlib.md5(os.urandom(64)).hexdigest()
@@ -158,10 +158,10 @@ def import_challenges():
 
                     os.makedirs(dst_dir)
                     dstpath = os.path.join(dst_dir, dst_filename)
-                    srcpath = os.path.join(os.path.dirname(args.in_file), file)
+                    srcpath = os.path.join(os.path.dirname(in_file), file)
 
                     shutil.copy(srcpath, dstpath)
-                    file_dbobj = Files(chal_dbobj.id, os.path.relpath(dstpath, start=args.dst_attachments))
+                    file_dbobj = Files(chal_dbobj.id, os.path.relpath(dstpath, start=dst_attachments))
 
                     db.session.add(file_dbobj)
 
@@ -197,4 +197,4 @@ if __name__ == "__main__":
             db.create_all()
 
         app.db = db
-        import_challenges()
+        import_challenges(args.in_file, args.dst_attachments, args.exit_on_error)
