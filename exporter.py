@@ -18,7 +18,6 @@ import gzip
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Export a DB full of CTFd challenges and theirs attachments into a portable YAML formated specification file and an associated attachment directory')
-    #parser.add_argument('--config', dest='config', type=str, help="module name for a config object. The same as is used for the CTFd flask app. Unused if -d and -F have values (default: ...config.Config)", default="...config.Config")
     parser.add_argument('--app-root', dest='app_root', type=str, help="app_root directory for the CTFd Flask app (default: 2 directories up from this script)", default=None)
     parser.add_argument('-d', dest='db_uri', type=str, help="URI of the database where the challenges are stored")
     parser.add_argument('-F', dest='in_file_dir', type=str, help="directory where challenge attachment files are stored")
@@ -33,7 +32,8 @@ def process_args(args):
         if args.app_root:
             app.root_path = os.path.abspath(args.app_root)
         else:
-            grandparent_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            abs_filepath = os.path.abspath(__file__)
+            grandparent_dir = os.path.dirname(os.path.dirname(os.path.dirname(abs_filepath)))
             app.root_path = grandparent_dir
         sys.path.append(app.root_path)
         app.config.from_object("config.Config")

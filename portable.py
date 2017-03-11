@@ -1,2 +1,5 @@
-from exporter import export_chals
-from importer import import_chals
+from exporter import export_challenges
+#from importer import import_chals
+
+def load(app):
+    pass

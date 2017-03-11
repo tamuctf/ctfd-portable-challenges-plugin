@@ -14,12 +14,10 @@ import os
 import sys
 import hashlib
 import argparse
-import imp
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Import CTFd challenges and their attachments to a DB from a YAML formated specification file and an associated attachment directory')
-    parser.add_argument('--config', dest='config', type=str, help="module name for a config object. The same as is used for the CTFd flask app. Unused if -d and -F have values (default: CTFd.config.Config)", default="CTFd.config.Config")
-    parser.add_argument('--app-root', dest='app_root', type=str, help="root directory for the flask app which accesses the database. Used with the config option and defaults to the folder which contains the configuration module")
+    parser.add_argument('--app-root', dest='app_root', type=str, help="app_root directory for the CTFd Flask app (default: 2 directories up from this script)", default=None)
     parser.add_argument('-d', dest='db_uri', type=str, help="URI of the database where the challenges should be stored")
     parser.add_argument('-F', dest='out_file_dir', type=str, help="directory where challenge attachment files should be stored")
     parser.add_argument('-i', dest='in_file', type=str, help="name of the input YAML file (default: export.yaml)", default="export.yaml")
@@ -31,26 +29,14 @@ def process_args(args):
         if args.app_root:
             app.root_path = os.path.abspath(args.app_root)
         else:
-            # Search for the config module working backwards
-            file, path, desc = (None, None, None)
-            broken_name = args.config.split('.')
-            while broken_name:
-                try:
-                    file, path, desc = imp.find_module('.'.join(broken_name))
-                    break
-                except ImportError as e:
-                    pass
-                broken_name.pop()
+            abs_filepath = os.path.abspath(__file__)
+            grandparent_dir = os.path.dirname(os.path.dirname(os.path.dirname(abs_filepath)))
+            app.root_path = grandparent_dir
+        sys.path.append(app.root_path)
+        app.config.from_object("config.Config")
 
-            if path:
-                path = os.path.abspath(path)
-                if not os.path.isdir(path):
-                    path = os.path.dirname(path)
-                app.root_path = path
-
-        app.config.from_object(args.config)
     if args.db_uri:
-        app.config['SQLALCHEMY_DATABASE_URI'] = args.db_uri  # Make this configurable in the commnad line
+        app.config['SQLALCHEMY_DATABASE_URI'] = args.db_uri
     if not args.out_file_dir:
         args.out_file_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
 
@@ -70,9 +56,8 @@ if __name__ == "__main__":
     req_fields = ['name', 'description', 'value', 'category', 'flags']
 
     with app.app_context():
-        from CTFd.models import db, Challenges, Keys, Tags, Files, DatabaseError
-
         args = process_args(args)
+        from models import db, Challenges, Keys, Tags, Files, DatabaseError
 
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         url = make_url(app.config['SQLALCHEMY_DATABASE_URI'])
