@@ -54,14 +54,14 @@ def copy_files(file_map):
             if os.path.exists(out_dir):
                 raise RuntimeError("Output directory name exists, but is not a directory: %s" % out_dir)
             os.makedirs(out_dir)
-        shutil.copy(os.path.join(args.in_file_dir, in_path), out_path) 
+        shutil.copy(in_path, out_path)
 
 def tar_files(file_map, tarfile):
     for in_path, out_path in file_map.items():
-        tarfile.add(os.path.join(args.in_file_dir, in_path), out_path) 
+        tarfile.add(in_path, out_path)
 
 
-def export_challenges(tarfile=None):
+def export_challenges(out_file, out_file_dir, in_file_dir, tarfile=None):
     chals = Challenges.query.order_by(Challenges.value).all()
     chals_list = []
 
@@ -93,13 +93,14 @@ def export_challenges(tarfile=None):
 
         file_map = {}
         file_list = []
-        for in_file_path in in_file_paths:
-            dirname, filename = os.path.split(in_file_path)
-            out_dir = os.path.join(args.out_file_dir, dirname)
-            file_map[in_file_path] = os.path.join(out_dir, filename)
+        for in_path_rel in in_file_paths:
+            dirname, filename = os.path.split(in_path_rel)
+            out_dir = os.path.join(out_file_dir, dirname)
+            in_path = os.path.join(in_file_dir, in_path_rel)
+            file_map[in_path] = os.path.join(out_dir, filename)
 
             # Create path relative to the output file
-            out_dir_rel = os.path.relpath(out_dir, start=os.path.dirname(args.out_file))
+            out_dir_rel = os.path.relpath(out_dir, start=os.path.dirname(out_file))
             file_list.append(os.path.join(out_dir_rel, filename))
 
         if file_map:
@@ -142,7 +143,7 @@ if __name__ == "__main__":
 
         app.db = db
 
-        out_stream.write(export_challenges(tarfile))
+        out_stream.write(export_challenges(args.out_file, args.out_file_dir, args.in_file_dir, tarfile))
 
     if args.tar:
         print("Tarballing exported files")
