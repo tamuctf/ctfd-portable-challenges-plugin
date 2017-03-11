@@ -19,13 +19,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Import CTFd challenges and their attachments to a DB from a YAML formated specification file and an associated attachment directory')
     parser.add_argument('--app-root', dest='app_root', type=str, help="app_root directory for the CTFd Flask app (default: 2 directories up from this script)", default=None)
     parser.add_argument('-d', dest='db_uri', type=str, help="URI of the database where the challenges should be stored")
-    parser.add_argument('-F', dest='out_file_dir', type=str, help="directory where challenge attachment files should be stored")
+    parser.add_argument('-F', dest='dst_attachments', type=str, help="directory where challenge attachment files should be stored")
     parser.add_argument('-i', dest='in_file', type=str, help="name of the input YAML file (default: export.yaml)", default="export.yaml")
     parser.add_argument('--skip-on-error', dest="exit_on_error", action='store_false', help="If set, the importer will skip the importing challenges which have errors rather than halt.", default=True)
     return parser.parse_args()
 
 def process_args(args):
-    if not (args.db_uri and args.out_file_dir):
+    if not (args.db_uri and args.dst_attachments):
         if args.app_root:
             app.root_path = os.path.abspath(args.app_root)
         else:
@@ -37,8 +37,8 @@ def process_args(args):
 
     if args.db_uri:
         app.config['SQLALCHEMY_DATABASE_URI'] = args.db_uri
-    if not args.out_file_dir:
-        args.out_file_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    if not args.dst_attachments:
+        args.dst_attachments = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
 
     return args
 
@@ -111,7 +111,7 @@ def import_challenges():
 
                     hashes = []
                     for file_db in files_db:
-                        with open(os.path.join(args.out_file_dir, file_db), 'r') as f:
+                        with open(os.path.join(args.dst_attachments, file_db), 'r') as f:
                             hash = hashlib.md5(f.read()).digest()
                             hashes.append(hash)
 
@@ -147,21 +147,21 @@ def import_challenges():
             if 'files' in chal:
                 for file in chal['files']:
                     filename = os.path.basename(file)
-                    dstfilename = secure_filename(filename)
+                    dst_filename = secure_filename(filename)
 
                     md5hash = hashlib.md5(os.urandom(64)).hexdigest()
-                    dstdir = os.path.join(args.out_file_dir, md5hash)
+                    dst_dir = os.path.join(args.dst_attachments, md5hash)
 
-                    while os.path.exists(dstdir):
+                    while os.path.exists(dst_dir):
                         md5hash = hashlib.md5(os.urandom(64)).hexdigest()
-                        dstdir = os.path.join(file_dir, md5hash)
+                        dst_dir = os.path.join(file_dir, md5hash)
 
-                    os.makedirs(dstdir)
-                    dstpath = os.path.join(dstdir, dstfilename)
+                    os.makedirs(dst_dir)
+                    dstpath = os.path.join(dst_dir, dst_filename)
                     srcpath = os.path.join(os.path.dirname(args.in_file), file)
 
                     shutil.copy(srcpath, dstpath)
-                    file_dbobj = Files(chal_dbobj.id, os.path.relpath(dstpath, start=args.out_file_dir))
+                    file_dbobj = Files(chal_dbobj.id, os.path.relpath(dstpath, start=args.dst_attachments))
 
                     db.session.add(file_dbobj)
 

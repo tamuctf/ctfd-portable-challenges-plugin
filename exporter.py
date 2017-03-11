@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument('-d', dest='db_uri', type=str, help="URI of the database where the challenges are stored")
     parser.add_argument('-F', dest='in_file_dir', type=str, help="directory where challenge attachment files are stored")
     parser.add_argument('-o', dest='out_file', type=str, help="name of the output YAML file (default: export.yaml)", default="export.yaml")
-    parser.add_argument('-O', dest='out_file_dir', type=str, help="directory for output challenge attachments (default: [OUT_FILENAME].d)", default=None)
+    parser.add_argument('-O', dest='dst_attachments', type=str, help="directory for output challenge attachments (default: [OUT_FILENAME].d)", default=None)
     parser.add_argument('--tar', dest='tar', help="if present, output to tar file", action='store_true')
     parser.add_argument('--gz', dest='gz', help="if present, compress the tar file (only used if '--tar' is on)", action='store_true')
     return parser.parse_args()
@@ -42,26 +42,26 @@ def process_args(args):
         app.config['SQLALCHEMY_DATABASE_URI'] = args.db_uri
     if not args.in_file_dir:
         args.in_file_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-    if not args.out_file_dir:
-        args.out_file_dir = args.out_file.rsplit('.',1)[0]+'.d'
+    if not args.dst_attachments:
+        args.dst_attachments = args.out_file.rsplit('.',1)[0]+'.d'
 
     return args
 
 def copy_files(file_map):
-    for in_path, out_path in file_map.items():
-        out_dir = os.path.dirname(out_path)
-        if not os.path.isdir(out_dir):
-            if os.path.exists(out_dir):
-                raise RuntimeError("Output directory name exists, but is not a directory: %s" % out_dir)
-            os.makedirs(out_dir)
-        shutil.copy(in_path, out_path)
+    for src_path, dst_path in file_map.items():
+        dst_dir = os.path.dirname(dst_path)
+        if not os.path.isdir(dst_dir):
+            if os.path.exists(dst_dir):
+                raise RuntimeError("Output directory name exists, but is not a directory: %s" % dst_dir)
+            os.makedirs(dst_dir)
+        shutil.copy(src_path, dst_path)
 
 def tar_files(file_map, tarfile):
-    for in_path, out_path in file_map.items():
-        tarfile.add(in_path, out_path)
+    for src_path, dst_path in file_map.items():
+        tarfile.add(src_path, dst_path)
 
 
-def export_challenges(out_file, out_file_dir, in_file_dir, tarfile=None):
+def export_challenges(out_file, dst_attachments, in_file_dir, tarfile=None):
     chals = Challenges.query.order_by(Challenges.value).all()
     chals_list = []
 
@@ -89,19 +89,19 @@ def export_challenges(out_file, out_file_dir, in_file_dir, tarfile=None):
             properties['tags'] = tags
 
         #These file locations will be partial paths in relation to the upload folder
-        in_file_paths = [file.location for file in Files.query.add_columns('location').filter_by(chal=chal.id).all()]
+        src_paths_rel = [file.location for file in Files.query.add_columns('location').filter_by(chal=chal.id).all()]
 
         file_map = {}
         file_list = []
-        for in_path_rel in in_file_paths:
-            dirname, filename = os.path.split(in_path_rel)
-            out_dir = os.path.join(out_file_dir, dirname)
-            in_path = os.path.join(in_file_dir, in_path_rel)
-            file_map[in_path] = os.path.join(out_dir, filename)
+        for src_path_rel in src_paths_rel:
+            dirname, filename = os.path.split(src_path_rel)
+            dst_dir = os.path.join(dst_attachments, dirname)
+            src_path = os.path.join(in_file_dir, src_path_rel)
+            file_map[src_path] = os.path.join(dst_dir, filename)
 
             # Create path relative to the output file
-            out_dir_rel = os.path.relpath(out_dir, start=os.path.dirname(out_file))
-            file_list.append(os.path.join(out_dir_rel, filename))
+            dst_dir_rel = os.path.relpath(dst_dir, start=os.path.dirname(out_file))
+            file_list.append(os.path.join(dst_dir_rel, filename))
 
         if file_map:
             properties['files'] = file_list
@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
         app.db = db
 
-        out_stream.write(export_challenges(args.out_file, args.out_file_dir, args.in_file_dir, tarfile))
+        out_stream.write(export_challenges(args.out_file, args.dst_attachments, args.in_file_dir, tarfile))
 
     if args.tar:
         print("Tarballing exported files")
