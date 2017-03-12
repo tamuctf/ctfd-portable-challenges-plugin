@@ -15,6 +15,9 @@ import sys
 import hashlib
 import argparse
 
+
+REQ_FIELDS = ['name', 'description', 'value', 'category', 'flags']
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Import CTFd challenges and their attachments to a DB from a YAML formated specification file and an associated attachment directory')
     parser.add_argument('--app-root', dest='app_root', type=str, help="app_root directory for the CTFd Flask app (default: 2 directories up from this script)", default=None)
@@ -22,6 +25,7 @@ def parse_args():
     parser.add_argument('-F', dest='dst_attachments', type=str, help="directory where challenge attachment files should be stored")
     parser.add_argument('-i', dest='in_file', type=str, help="name of the input YAML file (default: export.yaml)", default="export.yaml")
     parser.add_argument('--skip-on-error', dest="exit_on_error", action='store_false', help="If set, the importer will skip the importing challenges which have errors rather than halt.", default=True)
+    parser.add_argument('--move', dest="move", action='store_true', help="if set the import proccess will move files rather than copy them", default=False)
     return parser.parse_args()
 
 def process_args(args):
@@ -32,8 +36,8 @@ def process_args(args):
             abs_filepath = os.path.abspath(__file__)
             grandparent_dir = os.path.dirname(os.path.dirname(os.path.dirname(abs_filepath)))
             app.root_path = grandparent_dir
-        sys.path.append(app.root_path)
-        app.config.from_object("config.Config")
+        sys.path.append(os.path.dirname(app.root_path))
+        app.config.from_object("CTFd.config.Config")
 
     if args.db_uri:
         app.config['SQLALCHEMY_DATABASE_URI'] = args.db_uri
@@ -48,14 +52,15 @@ class MissingFieldError(Exception):
     def __str__(self):
         return "Error: Missing field '{}'".format(name)
 
-def import_challenges(in_file, dst_attachments, exit_on_error=True):
+def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
+    from CTFd.models import db, Challenges, Keys, Tags, Files
     chals = []
     with open(in_file, 'r') as in_stream:
         chals = yaml.safe_load_all(in_stream)
 
         for chal in chals:
             skip = False
-            for req_field in req_fields:
+            for req_field in REQ_FIELDS:
                 if req_field not in chal:
                     if exit_on_error:
                         raise MissingFieldError(req_field)
@@ -149,18 +154,19 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True):
                     filename = os.path.basename(file)
                     dst_filename = secure_filename(filename)
 
-                    md5hash = hashlib.md5(os.urandom(64)).hexdigest()
-                    dst_dir = os.path.join(dst_attachments, md5hash)
-
-                    while os.path.exists(dst_dir):
+                    dst_dir = None
+                    while not dst_dir or os.path.exists(dst_dir):
                         md5hash = hashlib.md5(os.urandom(64)).hexdigest()
-                        dst_dir = os.path.join(file_dir, md5hash)
+                        dst_dir = os.path.join(dst_attachments, md5hash)
 
                     os.makedirs(dst_dir)
                     dstpath = os.path.join(dst_dir, dst_filename)
                     srcpath = os.path.join(os.path.dirname(in_file), file)
 
-                    shutil.copy(srcpath, dstpath)
+                    if move:
+                        shutil.move(srcpath, dstpath)
+                    else:
+                        shutil.copy(srcpath, dstpath)
                     file_dbobj = Files(chal_dbobj.id, os.path.relpath(dstpath, start=dst_attachments))
 
                     db.session.add(file_dbobj)
@@ -174,11 +180,10 @@ if __name__ == "__main__":
     
     app = Flask(__name__)
 
-    req_fields = ['name', 'description', 'value', 'category', 'flags']
 
     with app.app_context():
         args = process_args(args)
-        from models import db, Challenges, Keys, Tags, Files, DatabaseError
+        from CTFd.models import db
 
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         url = make_url(app.config['SQLALCHEMY_DATABASE_URI'])
@@ -197,4 +202,4 @@ if __name__ == "__main__":
             db.create_all()
 
         app.db = db
-        import_challenges(args.in_file, args.dst_attachments, args.exit_on_error)
+        import_challenges(args.in_file, args.dst_attachments, args.exit_on_error, move=args.move)

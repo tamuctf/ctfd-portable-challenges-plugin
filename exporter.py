@@ -128,7 +128,7 @@ if __name__ == "__main__":
     if args.tar:
         out_stream = TemporaryFile(mode='wb+')
         if args.gz:
-            tempfile = TemporaryFile(mode='wb+') 
+            tempfile = TemporaryFile(mode='wb+')
             tarfile = TarFile(fileobj=tempfile, mode='w')
         else:
             tarfile = TarFile(name='export.tar', mode='w')
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
     if args.tar:
         print("Tarballing exported files")
-        tarinfo = TarInfo(args.out_file) 
+        tarinfo = TarInfo(args.out_file)
         tarinfo.size = out_stream.tell()
         out_stream.seek(0)
         tarfile.addfile(tarinfo, out_stream)
@@ -162,5 +162,3 @@ if __name__ == "__main__":
                 shutil.copyfileobj(tempfile, gz)
 
     out_stream.close()
-
-
