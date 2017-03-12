@@ -1,4 +1,4 @@
-from flask import Blueprint, send_file, request, abort, render_template
+from flask import Blueprint, send_file, request, abort, render_template_string
 from werkzeug.utils import secure_filename
 from exporter import export_challenges
 from importer import import_challenges
@@ -95,6 +95,8 @@ def load(app):
     @portable.route('/admin/transfer', methods=['GET'])
     @admins_only
     def yaml_form():
-        return render_template('admin/transfer.html')
+        templatepath = os.path.abspath(os.path.join(os.path.dirname(__file__), 'transfer.html'))
+        with open(templatepath, 'r') as templatefile:
+            return render_template_string(templatefile.read())
 
     app.register_blueprint(portable)

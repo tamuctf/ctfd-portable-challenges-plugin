@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+
+{% block stylesheets %}
+<style>
+.btn-primary { background-color: #337ab7; }
+.btn-danger { background-color: #d9534f; }
+.col-md-4 { margin-bottom: 15px; }
+.key-remove-button { margin-top: 10px; }
+.delete-tag { color: white; margin-left: 3px; cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div style="text-align:center">
+        <br>
+        <h1 class="text-center">Challenege Transfer</h1>
+
+        <div class="row">
+            <form id="import-form" action="{{ request.script_root }}/admin/yaml" method="POST" enctype="multipart/form-data">
+                <input style="margin: auto;" type="file" name="file" value="file" id="tarfile">
+                <input type="hidden" name="nonce" value="{{ nonce }}">
+            </form>
+        </div>
+
+        <div class="row">
+            <a href="{{ request.script_root }}/admin/yaml" class="btn btn-theme btn-outlined" id="export-challenges">Export</a>
+            <button class="btn btn-theme btn-outlined" id="import-challenges">Import</button>
+        </div>
+
+        <div class="alerts row">
+            <div hidden id="import-loading" class="alert alert-info" role="alert"><strong>Uploading:</strong> File upload in progress</div>
+            <div hidden id="import-success"class="alert alert-success" role="alert"><strong>Success:</strong> Your challenges have been imported</div>
+            <div hidden id="user-import-error" class="alert alert-danger" role="alert"><strong>Error:</strong> Challenge archive improperly formatted</div>
+            <div hidden id="unknown-import-error" class="alert alert-danger" role="alert"><strong>Error:</strong> Upload failed for unknown reason</div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{{ request.script_root }}/static/admin/js/utils.js"></script>
+    <script>
+        $("#import-loading").hide()
+        $("#import-success").hide()
+        $("#user-import-error").hide()
+        $("#unknown-import-error").hide()
+
+        $("#import-challenges").click( function(e) {
+            $("#import-loading").show();
+            $("#import-success").hide();
+            $("#user-import-error").hide();
+            $("#unknown-import-error").hide();
+            $("#import-challenges").addClass("disabled");
+            $("#import-challenges").css("point-events", "none");
+
+            var form = $("#import-form")[0];
+            var formData = new FormData(form);
+            $.ajax({
+                url: script_root + '/admin/yaml',
+                data: formData,
+                type: 'POST',
+                cache: false,
+                contentType: false,
+                processData: false,
+                success: function(data){
+                    form.reset();
+                    $("#import-loading").hide();
+                    $("#import-success").show();
+                    $("#import-challenges").removeClass("disabled");
+                    $("#import-challenges").css("point-events", "auto");
+                },
+                error: function(resp){
+                    $("#import-loading").hide();
+                    if(resp.status == 400){
+                        $("#user-import-error").show();
+                    }
+                    else{
+                        $("#unknown-import-error").show();
+                    }
+                    $("#import-challenges").removeClass("disabled");
+                    $("#import-challenges").css("point-events", "auto");
+                }
+            });
+        });
+    </script>
+{% endblock %}
