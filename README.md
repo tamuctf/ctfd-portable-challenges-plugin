@@ -112,6 +112,19 @@ Following is a list of top level keys with their usage.
 * Usage: Set to true if this challenge should not display to the user
 * Default: false
 
+###### Instancing
+
+**instanced** (optional)
+* Type: Boolean {true, false}
+* Usage: Set to true if this problem is variable by user either by static instances, or a generator script
+* Default: false
+
+**generator** (optional)
+* Type: Path string
+* Usage: Set this field to the path relative within the generators folder where the script/program that will be called to generate the instance parameters resides.
+* Note: Generator scripts are not uploaded through this system as the structure can be very specific. Please upload generator scripts seperately.
+* Default: empty string (problem not generated progamatically)
+
 ##### Example YAML File
 ```YAML
 ---
