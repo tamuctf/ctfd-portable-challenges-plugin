@@ -95,6 +95,14 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
             if 'hidden' in chal and chal['hidden']:
                 chal_dbobj.hidden = True
 
+            if 'instanced' in chal and chal['instanced']:
+                chal_dbobj.instanced = True
+
+            if 'generator' in chal and chal['generator']:
+                chal_dbobj.instanced = True
+                chal_dbobj.generated = True
+                chal_dbobj.generator = chal['generator']
+
             matching_chals = Challenges.query.filter_by(
                 name=chal_dbobj.name,
                 description=chal_dbobj.description,
@@ -131,6 +139,15 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                                 break
                     if mismatch:
                         continue
+
+                if 'generated' in chal and chal['generated'] != match.generated:
+                    continue
+
+                if 'generator' in chal and chal['generator'] != match.generator:
+                    continue
+
+                if 'instanced' in chal and chal['instanced'] != match.instanced:
+                    continue
 
                 flags_db = Keys.query.filter_by(chal=match.id).all()
                 for flag in chal['flags']:

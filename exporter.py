@@ -90,8 +90,14 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         if tags:
             properties['tags'] = tags
 
+        if chal.instanced:
+            properties['instanced'] = True
+
+        if chal.generated and chal.generator:
+            properties['generator'] = chal.generator
+
         #These file locations will be partial paths in relation to the upload folder
-        src_paths_rel = [file.location for file in Files.query.add_columns('location').filter_by(chal=chal.id).all()]
+        src_paths_rel = [file.location for file in Files.query.add_columns('location', 'generated').filter_by(chal=chal.id).all() if not file.generated]
 
         file_map = {}
         file_list = []
