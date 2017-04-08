@@ -89,8 +89,7 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 chal['name'].strip(),
                 chal['description'].strip(),
                 chal['value'],
-                chal['category'].strip(),
-                chal['flags']
+                chal['category'].strip()
             )
 
             if 'hidden' in chal and chal['hidden']:
@@ -133,9 +132,16 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     if mismatch:
                         continue
 
-                if json.loads(match.flags) == chal['flags']:
-                    skip = True
-                    break
+                flags_db = Keys.query.filter_by(chal=match.id).all()
+                for flag in chal['flags']:
+                    for flag_db in flags_db:
+                        if flag['flag'] != flag_db.flag:
+                            continue
+                        if flag['type'] != flag_db.key_type:
+                            continue
+
+                skip = True
+                break
             if skip:
                 print "Skipping {}: Duplicate challenge found in DB".format(chal['name'].encode('utf8'))
                 continue
@@ -148,6 +154,11 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 for tag in chal['tags']:
                     tag_dbobj = Tags(chal_dbobj.id, tag)
                     db.session.add(tag_dbobj)
+
+            for flag in chal['flags']:
+                flag_db = Keys(chal_dbobj.id, flag['flag'], flag['type'])
+                db.session.add(flag_db)
+
 
             if 'files' in chal:
                 for file in chal['files']:

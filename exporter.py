@@ -74,12 +74,12 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         'description': chal.description,
         'category': chal.category,
         }
-        flags_obj = json.loads(chal.flags)
+        flags_obj = Keys.query.filter_by(chal=chal.id)
         flags = []
-        for flag in flags_obj:
-            if flag['type'] == 0:
-                flag.pop('type')
-            elif flag['type'] == 1:
+        for flag_obj in flags_obj:
+            flag = {}
+            flag['flag'] = flag_obj.flag
+            if flag_obj.key_type == 1:
                 flag['type'] = 'REGEX'
             flags.append(flag)
         properties['flags'] = flags
