@@ -97,6 +97,7 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
 
             if 'instanced' in chal and chal['instanced']:
                 chal_dbobj.instanced = True
+                chal_dbobj.type = 4321 # Needs to match the instancing plugin
 
             if 'generator' in chal and chal['generator']:
                 chal_dbobj.instanced = True
