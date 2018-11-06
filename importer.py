@@ -79,10 +79,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                         print "Skipping flag: Missing field 'flag'"
                         continue
                 flag['flag'] = flag['flag'].strip()
-                if 'type' in flag == "REGEX":
-                    flag['type'] = 1
-                else:
-                    flag['type'] = 0
+                if 'type' not in flag:
+                    flag['type'] = "static"
 
             # We ignore traling and leading whitespace when importing challenges
             chal_dbobj = Challenges(

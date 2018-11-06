@@ -79,8 +79,7 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         for flag_obj in flags_obj:
             flag = {}
             flag['flag'] = flag_obj.flag
-            if flag_obj.key_type == 1:
-                flag['type'] = 'REGEX'
+            flag['type'] = flag_obj.type
             flags.append(flag)
         properties['flags'] = flags
 
