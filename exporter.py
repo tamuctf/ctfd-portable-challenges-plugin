@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 from flask import Flask
 from sqlalchemy_utils import database_exists, create_database
@@ -8,7 +8,6 @@ from sqlalchemy.exc import OperationalError
 # This does in fact rely on being in the CTFd/plugins/*/ folder (3 directories up)
 from tarfile import TarFile, TarInfo
 from tempfile import TemporaryFile
-import json
 import yaml
 import shutil
 import os
@@ -43,7 +42,7 @@ def process_args(args):
     if not args.src_attachments:
         args.src_attachments = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
     if not args.dst_attachments:
-        args.dst_attachments = args.out_file.rsplit('.',1)[0]+'.d'
+        args.dst_attachments = args.out_file.rsplit('.', 1)[0]+'.d'
 
     return args
 
@@ -62,7 +61,7 @@ def tar_files(file_map, tarfile):
 
 
 def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
-    from CTFd.models import Challenges, Keys, Tags, Files, DatabaseError
+    from CTFd.models import Challenges, Flags, Tags, Hints, ChallengeFiles
 
     chals = Challenges.query.order_by(Challenges.value).all()
     chals_list = []
@@ -74,23 +73,30 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         'description': chal.description,
         'category': chal.category,
         }
-        flags_obj = Keys.query.filter_by(chal=chal.id)
+
+        flags_obj = Flags.query.filter_by(challenge_id=chal.id)
         flags = []
         for flag_obj in flags_obj:
-            flag = {}
-            flag['flag'] = flag_obj.flag
-            flag['type'] = flag_obj.type
+            flag = {'flag': flag_obj.content, 'type': flag_obj.type}
             flags.append(flag)
         properties['flags'] = flags
 
-        if chal.hidden:
-            properties['hidden'] = bool(chal.hidden)
-        tags = [tag.tag for tag in Tags.query.add_columns('tag').filter_by(chal=chal.id).all()]
+        hints_obj = Hints.query.filter_by(challenge_id=chal.id)
+        hints = []
+        for hint_obj in hints_obj:
+            hint = {'hint': hint_obj.content, 'type': hint_obj.type, 'cost': hint_obj.cost}
+            hints.append(hint)
+        properties['hints'] = hints
+
+        if chal.state:
+            properties['hidden'] = chal.state == 'hidden'
+
+        tags = [tag.tag for tag in Tags.query.add_columns('value').filter_by(challenge_id=chal.id).all()]
         if tags:
             properties['tags'] = tags
 
-        #These file locations will be partial paths in relation to the upload folder
-        src_paths_rel = [file.location for file in Files.query.add_columns('location').filter_by(chal=chal.id).all()]
+        # These file locations will be partial paths in relation to the upload folder
+        src_paths_rel = [file.location for file in ChallengeFiles.query.add_columns('location').filter_by(challenge_id=chal.id).all()]
 
         file_map = {}
         file_list = []
@@ -114,7 +120,8 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         print("Exporting", properties['name'])
         chals_list.append(properties)
 
-    return yaml.safe_dump_all(chals_list, default_flow_style=False, allow_unicode=True, explicit_start=True)
+    return yaml.safe_dump_all(chals_list, default_flow_style=False, allow_unicode=True, explicit_start=True, sort_keys=False)
+
 
 if __name__ == "__main__":
     args = parse_args()

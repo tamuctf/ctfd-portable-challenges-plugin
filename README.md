@@ -1,8 +1,8 @@
 # Portable Challenges Plugin
 
-Compatable with CTFd v1.0.0
+Tested with CTFd v2.3.2
 
-This plugin provides the ability to import and export challneges in a portable, human-readble format (currently YAML, with JSON if there is popular demand). 
+This plugin provides the ability to import and export challenges in a portable, human-readable format (currently YAML, with JSON if there is popular demand). 
 
 ### Objectives:
 * Allow challenges to be saved outside of the database
@@ -11,22 +11,22 @@ This plugin provides the ability to import and export challneges in a portable, 
 * Enable rapid deployment of challenges to a CTFd instance
 
 ### Installation:
-Simple clone this repsitory into the plugins folder of your CTFd deployment and start the server. This plugin will automatically be loaded.
+Simple clone this repository into the plugins folder of your CTFd deployment and start the server. This plugin will automatically be loaded.
 
 ### Usage:
-You can use this plugin through the web API with a front-end at the '/admin/transfer' enpoint, or through the CLI
+You can use this plugin through the web API with a front-end at the '/admin/transfer' endpoint, or through the CLI
 
 #### Web endpoints:
 There are two endpoints which are associated with this plugin. 
 
 * '/admin/yaml': This is where the file transfer takes place. It supports two methods.
   * `GET`: Will send, as an attachment, a compressed tarball archive containing all of the currently configured challenges and their files
-  * `POST`: Requires a tarball archive, optional compressed with gzip or bz2, to be attached in the 'file' field. This will unpack the archive and add any challeneges which are not already in the database. The archive should contain the challenge spec as 'export.yaml' at the root directory of the archive, and no paths should reach into directories above the archive (e.g. ../../etc/passwd would trigger an error) A challenge is not added if it is an exact replica of an existing challenge including name, category, files, keys, etc...
+  * `POST`: Requires a tarball archive, optional compressed with gzip or bz2, to be attached in the 'file' field. This will unpack the archive and add any challenges which are not already in the database. The archive should contain the challenge spec as 'export.yaml' at the root directory of the archive, and no paths should reach into directories above the archive (e.g. ../../etc/passwd would trigger an error) A challenge is not added if it is an exact replica of an existing challenge including name, category, files, keys, etc...
 
-* '/admin/transfer': This is the front-end for the import/export system. It provides a simple inferface by which the endpoint described above can be accessed
+* '/admin/transfer': This is the front-end for the import/export system. It provides a simple interface by which the endpoint described above can be accessed
 
 #### Command line interface:
-The `importer.py` and `exporter.py` scripts can be called directly from the CLI. This is much prefered if the archive you are uploading/downloading is saved on the server because it will not need to use the network.
+The `importer.py` and `exporter.py` scripts can be called directly from the CLI. This is much preferred if the archive you are uploading/downloading is saved on the server because it will not need to use the network.
 
 The help dialog follows:
 ```
@@ -106,6 +106,22 @@ Following is a list of top level keys with their usage.
   * Usage: Specify whether the text should be compared to what the user enters directly, or as a regular expression
   * Default: PLAINTEXT
 
+**hints** (optional)
+* Type: List of hint objects
+  
+  **hint**
+  * Type: Single line text
+  * Usage: The hint text
+
+  **type** (optional)
+  * Type: Enum {REGEX, STANDARD}
+  * Usage: Specify whether the text should be compared to what the user enters directly, or as a regular expression
+  * Default: STANDARD
+  
+  **cost** (optional)
+  * Type: Positive integer
+  * Usage: The amount of point needed for revealing the hint
+  * Default: 0
 
 **hidden** (optional)
 * Type: Boolean {true, false}
@@ -128,6 +144,10 @@ flags:
 - flag: pharetra
 name: Duis
 value: 10
+hints:
+- hint: 'Hint: Buda huba cupa? nulla musca'
+  type: standard
+  cost: 2
 ---
 category: netus
 description: Duis nibh elit, ultricies non erat non, vulputate vestibulum risus. Nullam

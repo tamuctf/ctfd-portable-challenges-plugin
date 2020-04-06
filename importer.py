@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 from flask import Flask
 from sqlalchemy_utils import database_exists, create_database
@@ -6,8 +6,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import OperationalError
 from werkzeug.utils import secure_filename
 
-import json
-import hashlib
 import yaml
 import shutil
 import os
@@ -15,18 +13,27 @@ import sys
 import hashlib
 import argparse
 
-
 REQ_FIELDS = ['name', 'description', 'value', 'category', 'flags']
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description='Import CTFd challenges and their attachments to a DB from a YAML formated specification file and an associated attachment directory')
-    parser.add_argument('--app-root', dest='app_root', type=str, help="app_root directory for the CTFd Flask app (default: 2 directories up from this script)", default=None)
+    parser = argparse.ArgumentParser(
+        description='Import CTFd challenges and their attachments to a DB from a YAML formated specification file and an associated attachment directory')
+    parser.add_argument('--app-root', dest='app_root', type=str,
+                        help="app_root directory for the CTFd Flask app (default: 2 directories up from this script)",
+                        default=None)
     parser.add_argument('-d', dest='db_uri', type=str, help="URI of the database where the challenges should be stored")
-    parser.add_argument('-F', dest='dst_attachments', type=str, help="directory where challenge attachment files should be stored")
-    parser.add_argument('-i', dest='in_file', type=str, help="name of the input YAML file (default: export.yaml)", default="export.yaml")
-    parser.add_argument('--skip-on-error', dest="exit_on_error", action='store_false', help="If set, the importer will skip the importing challenges which have errors rather than halt.", default=True)
-    parser.add_argument('--move', dest="move", action='store_true', help="if set the import proccess will move files rather than copy them", default=False)
+    parser.add_argument('-F', dest='dst_attachments', type=str,
+                        help="directory where challenge attachment files should be stored")
+    parser.add_argument('-i', dest='in_file', type=str, help="name of the input YAML file (default: export.yaml)",
+                        default="export.yaml")
+    parser.add_argument('--skip-on-error', dest="exit_on_error", action='store_false',
+                        help="If set, the importer will skip the importing challenges which have errors rather than halt.",
+                        default=True)
+    parser.add_argument('--move', dest="move", action='store_true',
+                        help="if set the import proccess will move files rather than copy them", default=False)
     return parser.parse_args()
+
 
 def process_args(args):
     if not (args.db_uri and args.dst_attachments):
@@ -46,14 +53,17 @@ def process_args(args):
 
     return args
 
+
 class MissingFieldError(Exception):
     def __init__(self, name):
         self.name = value
+
     def __str__(self):
         return "Error: Missing field '{}'".format(name)
 
+
 def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
-    from CTFd.models import db, Challenges, Keys, Tags, Files
+    from CTFd.models import db, Challenges, Flags, Tags, Hints, ChallengeFiles
     chals = []
     with open(in_file, 'r') as in_stream:
         chals = yaml.safe_load_all(in_stream)
@@ -65,7 +75,7 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     if exit_on_error:
                         raise MissingFieldError(req_field)
                     else:
-                        print "Skipping challenge: Missing field '{}'".format(req_field)
+                        print("Skipping challenge: Missing field '{}'".format(req_field))
                         skip = True
                         break
             if skip:
@@ -76,51 +86,70 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     if exit_on_error:
                         raise MissingFieldError('flag')
                     else:
-                        print "Skipping flag: Missing field 'flag'"
+                        print("Skipping flag: Missing field 'flag'")
                         continue
                 flag['flag'] = flag['flag'].strip()
                 if 'type' not in flag:
                     flag['type'] = "static"
 
+            if 'files' in chal:
+                norm_files = []
+                for file in chal['files']:
+                    # make sure we have only relative paths in the yaml file
+                    file = os.path.normpath("/" + file).lstrip('/')
+                    # skip files that do not exists
+                    if not os.path.exists(os.path.join(os.path.dirname(in_file), file)):
+                        print("Skipping file '{}' in challenge '{}': File not found".format(file, chal['name'].strip()))
+                        continue
+                    else:
+                        norm_files.append(file)
+                chal['files'] = norm_files
+
+            for hint in chal['hints']:
+                if 'type' not in hint:
+                    hint['type'] = "standard"
+
             # We ignore traling and leading whitespace when importing challenges
             chal_dbobj = Challenges(
-                chal['name'].strip(),
-                chal['description'].strip(),
-                chal['value'],
-                chal['category'].strip()
+                name=chal['name'].strip(),
+                description=chal['description'].strip(),
+                value=chal['value'],
+                category=chal['category'].strip()
             )
 
+            chal_dbobj.state = 'visible'
             if 'hidden' in chal and chal['hidden']:
-                chal_dbobj.hidden = True
+                if bool(chal['hidden']):
+                    chal_dbobj.state = 'hidden'
 
             matching_chals = Challenges.query.filter_by(
                 name=chal_dbobj.name,
                 description=chal_dbobj.description,
                 value=chal_dbobj.value,
                 category=chal_dbobj.category,
-                hidden=chal_dbobj.hidden
+                state=chal_dbobj.state
             ).all()
 
             for match in matching_chals:
                 if 'tags' in chal:
-                    tags_db = [tag.tag for tag in Tags.query.add_columns('tag').filter_by(chal=match.id).all()]
+                    tags_db = [tag.tag for tag in Tags.query.add_columns('tag').filter_by(challenge_id=match.id).all()]
                     if all([tag not in tags_db for tag in chal['tags']]):
                         continue
                 if 'files' in chal:
-                    files_db = [f.location for f in Files.query.add_columns('location').filter_by(chal=match.id).all()]
+                    files_db = [f.location for f in ChallengeFiles.query.add_columns('location').filter_by(challenge_id=match.id).all()]
                     if len(files_db) != len(chal['files']):
                         continue
 
                     hashes = []
                     for file_db in files_db:
-                        with open(os.path.join(dst_attachments, file_db), 'r') as f:
+                        with open(os.path.join(dst_attachments, file_db), 'rb') as f:
                             hash = hashlib.md5(f.read()).digest()
                             hashes.append(hash)
 
                     mismatch = False
                     for file in chal['files']:
                         filepath = os.path.join(os.path.dirname(in_file), file)
-                        with open(filepath, 'r') as f:
+                        with open(filepath, 'rb') as f:
                             hash = hashlib.md5(f.read()).digest()
                             if hash in hashes:
                                 hashes.remove(hash)
@@ -130,21 +159,21 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     if mismatch:
                         continue
 
-                flags_db = Keys.query.filter_by(chal=match.id).all()
+                flags_db = Flags.query.filter_by(challenge_id=match.id).all()
                 for flag in chal['flags']:
                     for flag_db in flags_db:
-                        if flag['flag'] != flag_db.flag:
+                        if flag['flag'] != flag_db.content:
                             continue
-                        if flag['type'] != flag_db.key_type:
+                        if flag['type'] != flag_db.type:
                             continue
 
                 skip = True
                 break
             if skip:
-                print "Skipping {}: Duplicate challenge found in DB".format(chal['name'].encode('utf8'))
+                print("Skipping '{}': Duplicate challenge found in DB".format(chal['name'].encode('utf8')))
                 continue
 
-            print "Adding {}".format(chal['name'].encode('utf8'))
+            print("Adding {}".format(chal['name'].encode('utf8')))
             db.session.add(chal_dbobj)
             db.session.commit()
 
@@ -154,9 +183,13 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     db.session.add(tag_dbobj)
 
             for flag in chal['flags']:
-                flag_db = Keys(chal_dbobj.id, flag['flag'], flag['type'])
+                flag_db = Flags(challenge_id=chal_dbobj.id, content=flag['flag'], type=flag['type'])
                 db.session.add(flag_db)
 
+            for hint in chal['hints']:
+                hint_db = Hints(challenge_id=chal_dbobj.id, content=hint['hint'], type=hint['type'],
+                                cost=int(hint['cost']))
+                db.session.add(hint_db)
 
             if 'files' in chal:
                 for file in chal['files']:
@@ -176,19 +209,19 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                         shutil.move(srcpath, dstpath)
                     else:
                         shutil.copy(srcpath, dstpath)
-                    file_dbobj = Files(chal_dbobj.id, os.path.relpath(dstpath, start=dst_attachments))
+                    file_dbobj = ChallengeFiles(challenge_id=chal_dbobj.id,
+                                                location=os.path.relpath(dstpath, start=dst_attachments))
 
                     db.session.add(file_dbobj)
 
     db.session.commit()
     db.session.close()
-        
+
 
 if __name__ == "__main__":
     args = parse_args()
-    
-    app = Flask(__name__)
 
+    app = Flask(__name__)
 
     with app.app_context():
         args = process_args(args)
