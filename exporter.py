@@ -59,19 +59,20 @@ def tar_files(file_map, tarfile):
     for src_path, dst_path in file_map.items():
         tarfile.add(src_path, dst_path)
 
-
 def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
     from CTFd.models import Challenges, Flags, Tags, Hints, ChallengeFiles
+    from CTFd.plugins.dynamic_challenges import DynamicChallenge
 
     chals = Challenges.query.order_by(Challenges.value).all()
     chals_list = []
 
     for chal in chals:
         properties = {
-        'name': chal.name,
-        'value': chal.value,
-        'description': chal.description,
-        'category': chal.category,
+            'name': chal.name,
+            'value': chal.value,
+            'description': chal.description,
+            'category': chal.category,
+            'type': chal.type
         }
 
         flags_obj = Flags.query.filter_by(challenge_id=chal.id)
@@ -94,6 +95,12 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         tags = [tag.tag for tag in Tags.query.add_columns('value').filter_by(challenge_id=chal.id).all()]
         if tags:
             properties['tags'] = tags
+
+        if chal.type == 'dynamic':
+            dynamic_challenge_obj = DynamicChallenge.query.filter_by(id=chal.id).first()
+            properties['initial'] = dynamic_challenge_obj.initial
+            properties['decay'] = dynamic_challenge_obj.decay
+            properties['minimum'] = dynamic_challenge_obj.minimum
 
         # These file locations will be partial paths in relation to the upload folder
         src_paths_rel = [file.location for file in ChallengeFiles.query.add_columns('location').filter_by(challenge_id=chal.id).all()]

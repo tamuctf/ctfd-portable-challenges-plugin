@@ -64,6 +64,7 @@ class MissingFieldError(Exception):
 
 def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
     from CTFd.models import db, Challenges, Flags, Tags, Hints, ChallengeFiles
+    from CTFd.plugins.dynamic_challenges import DynamicChallenge
     chals = []
     with open(in_file, 'r') as in_stream:
         chals = yaml.safe_load_all(in_stream)
@@ -109,25 +110,53 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 if 'type' not in hint:
                     hint['type'] = "standard"
 
-            # We ignore traling and leading whitespace when importing challenges
-            chal_dbobj = Challenges(
-                name=chal['name'].strip(),
-                description=chal['description'].strip(),
-                value=chal['value'],
-                category=chal['category'].strip()
-            )
+            if chal['type'] == 'dynamic':
+                initial = int(chal['value'])
+                if 'initial' in chal:
+                    initial = int(chal['initial'])
+
+                minimum = 0
+                if 'minimum' in chal:
+                    minimum = int(chal['minimum'])
+
+                decay = 0
+                if 'decay' in chal:
+                    decay = int(chal['decay'])
+
+                chal_dbobj = DynamicChallenge(
+                    name=chal['name'].strip(),
+                    description=chal['description'].strip(),
+                    value=int(chal['value']),
+                    category=chal['category'].strip(),
+                    initial=initial,
+                    decay=decay,
+                    minimum=minimum
+                )
+            else:
+                # We ignore traling and leading whitespace when importing challenges
+                chal_dbobj = Challenges(
+                    name=chal['name'].strip(),
+                    description=chal['description'].strip(),
+                    value=int(chal['value']),
+                    category=chal['category'].strip()
+                )
 
             chal_dbobj.state = 'visible'
             if 'hidden' in chal and chal['hidden']:
                 if bool(chal['hidden']):
                     chal_dbobj.state = 'hidden'
 
+            chal_dbobj.type = 'standard'
+            if 'type' in chal and chal['type']:
+                chal_dbobj.type = chal['type']
+
             matching_chals = Challenges.query.filter_by(
                 name=chal_dbobj.name,
                 description=chal_dbobj.description,
                 value=chal_dbobj.value,
                 category=chal_dbobj.category,
-                state=chal_dbobj.state
+                state=chal_dbobj.state,
+                type=chal_dbobj.type
             ).all()
 
             for match in matching_chals:
@@ -213,8 +242,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                                                 location=os.path.relpath(dstpath, start=dst_attachments))
 
                     db.session.add(file_dbobj)
+        db.session.commit()
 
-    db.session.commit()
     db.session.close()
 
 

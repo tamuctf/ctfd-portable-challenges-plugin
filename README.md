@@ -84,10 +84,25 @@ Following is a list of top level keys with their usage.
 * Usage: Specify searchable tags that indicate attributes of this challenge
 * Default: Empty list
 
-
 **value** 
 * Type: Positive integer
 * Usage: The amount of point awarded for completion of the problem
+
+**type** (optional)
+* Type: Single line text (standard | dynamic)
+* Usage: Specify the type of the challenge. Default: standard
+
+**initial** (optional)
+* Type: Positive integer
+* Usage: (dynamic challenge only) This is how many points the challenge was worth initially. Defaults to `value` if not set.
+
+**decay** (optional)
+* Type: Positive integer
+* Usage: (dynamic challenge only) The amount of solves before the challenge reaches its minimum value
+
+**minimum** (optional)
+* Type: Positive integer
+* Usage: (dynamic challenge only) This is the lowest that the challenge can be worth
 
 **files** (optional)
 * Type: List of file paths (single line text)
@@ -159,6 +174,10 @@ flags:
 hidden: true
 name: Integer
 value: 30
+type: dynamic
+initial: 300
+decay: 10
+minimum: 1
 ---
 category: tristique
 description: Praesent ullamcorper orci condimentum sapien tincidunt lacinia. Pellentesque
@@ -187,6 +206,7 @@ flags:
 - flag: nisi
 name: Pellentesque
 value: 40
+type: standard
 ---
 category: Test
 description: Tset
