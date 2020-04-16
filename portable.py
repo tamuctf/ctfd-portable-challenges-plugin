@@ -1,14 +1,15 @@
 from flask import Blueprint, send_file, request, abort, render_template_string
 from werkzeug.utils import secure_filename
-from exporter import export_challenges
-from importer import import_challenges
+from .exporter import export_challenges
+from .importer import import_challenges
 from tempfile import TemporaryFile, mkdtemp
 from gzip import GzipFile
-from CTFd.utils import admins_only
+from CTFd.utils.decorators import admins_only
 import tarfile
 import gzip
 import os
 import shutil
+
 
 def load(app):
     portable = Blueprint('portable', __name__)
@@ -21,9 +22,8 @@ def load(app):
             tarfile_backend = TemporaryFile(mode='wb+')
             yamlfile = TemporaryFile(mode='wb+')
             tarball = tarfile.open(fileobj=tarfile_backend, mode='w')
-            print(upload_folder)
 
-            yamlfile.write(export_challenges('export.yaml', 'export.d', upload_folder, tarball))
+            yamlfile.write(bytes(export_challenges('export.yaml', 'export.d', upload_folder, tarball), "UTF-8"))
 
             tarinfo = tarfile.TarInfo('export.yaml')
             tarinfo.size = yamlfile.tell()
@@ -34,7 +34,7 @@ def load(app):
 
 
             gzipfile_backend = TemporaryFile(mode='wb+')
-            gzipfile = GzipFile(fileobj=gzipfile_backend)
+            gzipfile = GzipFile(fileobj=gzipfile_backend, mode='wb')
 
             tarfile_backend.seek(0)
             shutil.copyfileobj(tarfile_backend, gzipfile)
