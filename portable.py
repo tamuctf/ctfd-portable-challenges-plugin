@@ -64,7 +64,7 @@ def load(app):
                     shutil.rmtree(tempdir)
                     abort(400)
 
-                # Check for atttempts to escape to higher dirs
+                # Check for attempts to escape to higher dirs
                 for member in archive.getmembers():
                     memberpath = os.path.normpath(member.name)
                     if memberpath.startswith('/') or '..' in memberpath.split('/'):
