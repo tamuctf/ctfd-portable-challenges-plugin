@@ -1,6 +1,6 @@
 # Portable Challenges Plugin
 
-Tested with CTFd v2.4.2
+Tested with CTFd v3.1.1
 
 This plugin provides the ability to import and export challenges in a portable, human-readable format (currently YAML, with JSON if there is popular demand). 
 

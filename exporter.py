@@ -92,7 +92,12 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         if chal.state:
             properties['hidden'] = chal.state == 'hidden'
 
-        tags = [tag.tag for tag in Tags.query.add_columns('value').filter_by(challenge_id=chal.id).all()]
+        try:
+            tags = [tag.value for tag in Tags.query.add_columns('value').filter_by(challenge_id=chal.id).all()]
+        except:
+            # no tags are set
+            tags = None
+
         if tags:
             properties['tags'] = tags
 
