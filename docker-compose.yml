@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  ctfd-dev:
+    build: .
+    volumes:
+      - .:/opt/CTFd/CTFd/plugins/ctfd-portable-challenges-plugin:rw
+    ports:
+      - 8000:8000

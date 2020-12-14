@@ -1,7 +1,5 @@
 # Portable Challenges Plugin
 
-Tested with CTFd v3.1.1
-
 This plugin provides the ability to import and export challenges in a portable, human-readable format (currently YAML, with JSON if there is popular demand). 
 
 ### Objectives:
@@ -229,3 +227,21 @@ flags:
 name: Cras
 value: 90
 ```
+### Development 
+
+You can test the plugin with the latest CTFd using Docker Compose. 
+
+The CTFd version can be modified in the `Dockerfile`. 
+
+```angular2html
+FROM ctfd/ctfd:mark-3.2.0
+```
+
+Run the following command from the source repository to start CTFd with the plugin enabled:
+
+```bash
+docker-compose up
+```
+
+Now you can edit the source code, and the changed will be reflected in the container.  
+Have you found a plugin? It should be easy to fix and submit a pull request! 

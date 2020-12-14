@@ -17,6 +17,7 @@ def load(app):
     @portable.route('/admin/yaml', methods=['GET', 'POST'])
     @admins_only
     def transfer_yaml():
+        print(" * Transferring yml")
         upload_folder = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
         if request.method == 'GET':
             tarfile_backend = TemporaryFile(mode='wb+')
@@ -31,7 +32,6 @@ def load(app):
             tarball.addfile(tarinfo, yamlfile)
             tarball.close()
             yamlfile.close()
-
 
             gzipfile_backend = TemporaryFile(mode='wb+')
             gzipfile = GzipFile(fileobj=gzipfile_backend, mode='wb')

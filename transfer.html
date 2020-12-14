@@ -9,10 +9,12 @@
 <div class="container">
 	<div class="row">
         <div class="col-md-4 form-group">
+            {% with form = Forms.setup.SetupForm() %}
             <form id="import-form" action="{{ request.script_root }}/admin/yaml" method="POST" enctype="multipart/form-data">
                 <input style="margin: auto;" type="file" name="file" value="file" id="tarfile">
-                <input type="hidden" name="nonce" value="{{ nonce }}">
+                {{ form.nonce() }}
             </form>
+            {% endwith %}
         </div>
         <div class="col-md-3">
             <button class="btn-sm btn-warning" id="import-challenges">Import</button>
