@@ -24,6 +24,8 @@ def parse_args():
     parser.add_argument('-O', dest='dst_attachments', type=str, help="directory for output challenge attachments (default: [OUT_FILENAME].d)", default=None)
     parser.add_argument('--tar', dest='tar', help="if present, output to tar file", action='store_true')
     parser.add_argument('--gz', dest='gz', help="if present, compress the tar file (only used if '--tar' is on)", action='store_true')
+    parser.add_argument('--visible-only', dest='visible_only', help="if present, ignore hidden challenges", action='store_true')
+    parser.add_argument('--remove-flags', dest='remove_flags', help="if present, replace flags with a placeholder", action='store_true')
     return parser.parse_args()
 
 def process_args(args):
@@ -59,7 +61,7 @@ def tar_files(file_map, tarfile):
     for src_path, dst_path in file_map.items():
         tarfile.add(src_path, dst_path)
 
-def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
+def export_challenges(out_file, dst_attachments, src_attachments, visible_only, remove_flags, tarfile=None):
     from CTFd.models import Challenges, Flags, Tags, Hints, ChallengeFiles
     from CTFd.plugins.dynamic_challenges import DynamicChallenge
 
@@ -67,6 +69,9 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
     chals_list = []
 
     for chal in chals:
+        if visible_only and (chal.state == 'hidden'):
+            continue
+
         properties = {
             'name': chal.name,
             'value': chal.value,
@@ -80,7 +85,10 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         for flag_obj in flags_obj:
             flag = {'flag': flag_obj.content, 'type': flag_obj.type}
             flags.append(flag)
-        properties['flags'] = flags
+        if remove_flags:
+            properties['flags'] = {'flag': 'removed', 'type': 'static'}
+        else:
+            properties['flags'] = flags
 
         hints_obj = Hints.query.filter_by(challenge_id=chal.id)
         hints = []
@@ -163,7 +171,7 @@ if __name__ == "__main__":
 
         app.db = db
 
-        out_stream.write(export_challenges(args.out_file, args.dst_attachments, args.src_attachments, tarfile))
+        out_stream.write(export_challenges(args.out_file, args.dst_attachments, args.src_attachments, args.visible_only, args.remove_flags, tarfile))
 
     if args.tar:
         print("Tarballing exported files")
