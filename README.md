@@ -244,4 +244,4 @@ docker-compose up
 ```
 
 Now you can edit the source code, and the changed will be reflected in the container.  
-Have you found a plugin? It should be easy to fix and submit a pull request! 
+Have you found a bug? It should be easy to fix it and to submit a pull request! 
