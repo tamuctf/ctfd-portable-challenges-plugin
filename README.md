@@ -243,5 +243,5 @@ Run the following command from the source repository to start CTFd with the plug
 docker-compose up
 ```
 
-Now you can edit the source code, and the changed will be reflected in the container.  
+Now you can edit the source code, and the changes will be reflected in the container.  
 Have you found a bug? It should be easy to fix it and to submit a pull request! 
