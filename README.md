@@ -119,6 +119,11 @@ Following is a list of top level keys with their usage.
   * Usage: Specify whether the text should be compared to what the user enters directly, or as a regular expression
   * Default: PLAINTEXT
 
+  **data** (optional)
+  * Type: Enum {PLAINTEXT}
+  * Usage: Specify whether the flag should be case sensitive or not. Possible values '' or case_insensitive
+  * Default: ""
+
 **hints** (optional)
 * Type: List of hint objects
   
@@ -155,6 +160,7 @@ files:
 - export.d/4ab77d38dd646bb81e8d6d2533eec71c/bPXFXW7.mp4
 flags:
 - flag: pharetra
+  data: case_insensitive
 name: Duis
 value: 10
 hints:
@@ -169,6 +175,7 @@ files:
 - export.d/1e9f731e310179959337a26307356513/LYVIZ4x.mp4
 flags:
 - flag: ante
+  data: ''
 hidden: true
 name: Integer
 value: 30

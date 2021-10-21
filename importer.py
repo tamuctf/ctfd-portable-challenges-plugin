@@ -92,6 +92,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 flag['flag'] = flag['flag'].strip()
                 if 'type' not in flag:
                     flag['type'] = "static"
+                if 'data' not in flag:
+                    flag['data'] = ""
 
             if 'files' in chal:
                 norm_files = []
@@ -212,7 +214,7 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     db.session.add(tag_dbobj)
 
             for flag in chal['flags']:
-                flag_db = Flags(challenge_id=chal_dbobj.id, content=flag['flag'], type=flag['type'])
+                flag_db = Flags(challenge_id=chal_dbobj.id, content=flag['flag'], type=flag['type'], data=flag['data'])
                 db.session.add(flag_db)
 
             for hint in chal['hints']:

@@ -78,7 +78,7 @@ def export_challenges(out_file, dst_attachments, src_attachments, tarfile=None):
         flags_obj = Flags.query.filter_by(challenge_id=chal.id)
         flags = []
         for flag_obj in flags_obj:
-            flag = {'flag': flag_obj.content, 'type': flag_obj.type}
+            flag = {'flag': flag_obj.content, 'type': flag_obj.type, 'data': str(flag_obj.data or '')}
             flags.append(flag)
         properties['flags'] = flags
 
