@@ -44,7 +44,7 @@ optional arguments:
 
 ```
 ```
-usage: exporter.py [-h] [--app-root APP_ROOT] [-d DB_URI] [-F SRC_ATTACHMENTS] [-o OUT_FILE] [-O DST_ATTACHMENTS] [--tar] [--gz]
+usage: exporter.py [-h] [--app-root APP_ROOT] [-d DB_URI] [-F SRC_ATTACHMENTS] [-o OUT_FILE] [-O DST_ATTACHMENTS] [--tar] [--gz] [--visible-only] [--remove-flags]
 
 Export a DB full of CTFd challenges and theirs attachments into a portable
 YAML formated specification file and an associated attachment directory
@@ -58,6 +58,8 @@ optional arguments:
   -O DST_ATTACHMENTS   directory for output challenge attachments (default: [OUT_FILENAME].d)
   --tar                if present, output to tar file
   --gz                 if present, compress the tar file (only used if '--tar'is on)
+  --visible-only       if present, ignore hidden challenges
+  --remove-flags       if present, replace flags with a placeholder
 ```
 
 #### YAML Specification:
@@ -250,5 +252,5 @@ Run the following command from the source repository to start CTFd with the plug
 docker-compose up
 ```
 
-Now you can edit the source code, and the changed will be reflected in the container.  
-Have you found a plugin? It should be easy to fix and submit a pull request! 
+Now you can edit the source code, and the changes will be reflected in the container.  
+Have you found a bug? It should be easy to fix it and to submit a pull request! 
