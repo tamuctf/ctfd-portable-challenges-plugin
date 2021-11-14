@@ -21,9 +21,25 @@
         </div>
     </div>
     <hr>
-    <div class="d-block py-3">
-        <a href="{{ request.script_root }}/admin/yaml" class="btn btn-primary" id="export-challenges">Export</a>
+    <div class="row">
+        <div class="col-md-4 form-group">
+            {% with form = Forms.setup.SetupForm() %}
+                <form id="export-form" action="{{ request.script_root }}/admin/yaml" method="GET">
+                    <div class="form-check">
+                        <input type="checkbox" name="removeFlags" id="removeFlags">
+                        <label for="removeFlags">Remove Flags</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="visibleOnly" id="visibleOnly">
+                        <label for="visibleOnly">Visible Only</label>
+                    </div>
+                    {{ form.nonce() }}
+                    <button class="btn btn-primary" id="export-challenges">Export</button>
+                </form>
+            {% endwith %}
+        </div>
     </div>
+    
 
     <div class="form-group">
         <div id="import-loading" class="alert alert-info" role="alert"><strong>Uploading:</strong> File upload in progress</div>
