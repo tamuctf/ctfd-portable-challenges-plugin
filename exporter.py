@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import os
+import sys
 from flask import Flask
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.engine.url import make_url
@@ -8,12 +10,16 @@ from sqlalchemy.exc import OperationalError
 # This does in fact rely on being in the CTFd/plugins/*/ folder (3 directories up)
 from tarfile import TarFile, TarInfo
 from tempfile import TemporaryFile
-import yaml
 import shutil
-import os
-import sys
 import argparse
 import gzip
+
+# Try to load PyYAMP if it's installed, if not load the local version
+try:
+    import yaml
+except ModuleNotFoundError:
+    from .lib import yaml
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Export a DB full of CTFd challenges and theirs attachments into a portable YAML formated specification file and an associated attachment directory')
@@ -27,6 +33,7 @@ def parse_args():
     parser.add_argument('--visible-only', dest='visible_only', help="if present, ignore hidden challenges", action='store_true')
     parser.add_argument('--remove-flags', dest='remove_flags', help="if present, replace flags with a placeholder", action='store_true')
     return parser.parse_args()
+
 
 def process_args(args):
     if not (args.db_uri and args.src_attachments):
@@ -48,6 +55,7 @@ def process_args(args):
 
     return args
 
+
 def copy_files(file_map):
     for src_path, dst_path in file_map.items():
         dst_dir = os.path.dirname(dst_path)
@@ -57,9 +65,11 @@ def copy_files(file_map):
             os.makedirs(dst_dir)
         shutil.copy(src_path, dst_path)
 
+
 def tar_files(file_map, tarfile):
     for src_path, dst_path in file_map.items():
         tarfile.add(src_path, dst_path)
+
 
 def export_challenges(out_file, dst_attachments, src_attachments, visible_only, remove_flags, tarfile=None):
     from CTFd.models import Challenges, Flags, Tags, Hints, ChallengeFiles
@@ -85,10 +95,10 @@ def export_challenges(out_file, dst_attachments, src_attachments, visible_only, 
         for flag_obj in flags_obj:
             flag = {'flag': flag_obj.content, 'type': flag_obj.type, 'data': str(flag_obj.data or '')}
             flags.append(flag)
+        properties['flags'] = flags
+
         if remove_flags:
-            properties['flags'] = {'flag': 'removed', 'type': 'static'}
-        else:
-            properties['flags'] = flags
+            properties['flags'] = [{'flag': 'removed', 'type': 'static', 'data': ''}]
 
         hints_obj = Hints.query.filter_by(challenge_id=chal.id)
         hints = []
@@ -99,6 +109,9 @@ def export_challenges(out_file, dst_attachments, src_attachments, visible_only, 
 
         if chal.state:
             properties['hidden'] = chal.state == 'hidden'
+
+        if chal.max_attempts:
+            properties['max_attempts'] = chal.max_attempts
 
         try:
             tags = [tag.value for tag in Tags.query.add_columns('value').filter_by(challenge_id=chal.id).all()]
@@ -171,7 +184,7 @@ if __name__ == "__main__":
 
         app.db = db
 
-        out_stream.write(export_challenges(args.out_file, args.dst_attachments, args.src_attachments, args.visible_only, args.remove_flags, tarfile))
+        out_stream.write(export_challenges(out_file=args.out_file, dst_attachments=args.dst_attachments, src_attachments=args.src_attachments, visible_only=args.visible_only, remove_flags=args.remove_flags, tarfile=tarfile))
 
     if args.tar:
         print("Tarballing exported files")

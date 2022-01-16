@@ -26,7 +26,7 @@ def load(app):
             visible_only = request.args.get('visibleOnly', default=False, type=bool)
             remove_flags = request.args.get('removeFlags', default=False, type=bool)
 
-            yamlfile.write(bytes(export_challenges('export.yaml', 'export.d', upload_folder, visible_only, remove_flags, tarfile=tarball), "UTF-8"))
+            yamlfile.write(bytes(export_challenges(out_file='export.yaml', dst_attachments='export.d', src_attachments=upload_folder, visible_only=visible_only, remove_flags=remove_flags, tarfile=tarball), "UTF-8"))
 
             tarinfo = tarfile.TarInfo('export.yaml')
             tarinfo.size = yamlfile.tell()
@@ -78,7 +78,6 @@ def load(app):
                         if linkpath.startswith('/') or '..' in linkpath.split('/'):
                             shutil.rmtree(tempdir)
                             abort(400)
-
 
                 archive.extractall(path=tempdir)
 

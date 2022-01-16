@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 
+import os
+import sys
 from flask import Flask
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import OperationalError
 from werkzeug.utils import secure_filename
 
-import yaml
 import shutil
-import os
-import sys
 import hashlib
 import argparse
+
+# Try to load PyYAMP if it's installed, if not load the local version
+try:
+    import yaml
+except ModuleNotFoundError:
+    from .lib import yaml
 
 REQ_FIELDS = ['name', 'description', 'value', 'category', 'flags']
 
@@ -147,6 +152,10 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
             if 'hidden' in chal and chal['hidden']:
                 if bool(chal['hidden']):
                     chal_dbobj.state = 'hidden'
+
+            chal_dbobj.max_attempts = 0
+            if 'max_attempts' in chal and chal['max_attempts']:
+                chal_dbobj.max_attempts = chal['max_attempts']
 
             chal_dbobj.type = 'standard'
             if 'type' in chal and chal['type']:

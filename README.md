@@ -148,6 +148,12 @@ Following is a list of top level keys with their usage.
 * Usage: Set to true if this challenge should not display to the user
 * Default: false
 
+**max_attempts** (optional)
+* Type: Positive integer
+* Usage: Maximum amount of attempts users receive. Leave at 0 for unlimited.
+* Default: 0
+
+
 ##### Example YAML File
 ```YAML
 ---
