@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import importlib
 import os
 import sys
 from flask import Flask
@@ -69,7 +70,6 @@ class MissingFieldError(Exception):
 
 def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
     from CTFd.models import db, Challenges, Flags, Tags, Hints, ChallengeFiles
-    from CTFd.plugins.dynamic_challenges import DynamicChallenge
     chals = []
     with open(in_file, 'r') as in_stream:
         chals = yaml.safe_load_all(in_stream)
@@ -117,7 +117,15 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 if 'type' not in hint:
                     hint['type'] = "standard"
 
+            # Check what type the challenge is and create a DB object of the appropriate type.
             if chal['type'] == 'dynamic':
+                # Lazy load the DynamicChallenge plugin on encountering a challenge of that type.
+                try:
+                    from CTFd.plugins.dynamic_challenges import DynamicChallenge
+                except ImportError as err:
+                    print("Failed to import plugin for challenge type {}: {}".format(chal['type'], err))
+                    continue
+
                 initial = int(chal['value'])
                 if 'initial' in chal:
                     initial = int(chal['initial'])
@@ -138,6 +146,27 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     initial=initial,
                     decay=decay,
                     minimum=minimum
+                )
+            elif chal['type'] == 'naumachia':
+                # Lazy load the Naumachia plugin on encountering a challenge of that type.
+                try:
+                    # Here we use a fixed name, which is the repository name, even though it does
+                    # not conform to a proper Python package name. Users may install the package
+                    # using any file name they want, but this version of thsi plugin does not
+                    # support it.
+                    naumachia_plugin = importlib.import_module('.ctfd-naumachia-plugin', package="CTFd.plugins")
+                except ImportError as err:
+                    print("Failed to import plugin for challenge type {}: {}".format(chal['type'], err))
+                    continue
+
+                naumachia_name = chal.get('naumachia_name', "").strip(),
+
+                chal_dbobj = naumachia_plugin.NaumachiaChallengeModel(
+                    name=chal['name'].strip(),
+                    naumachia_name=chal['naumachia_name'],
+                    description=chal['description'].strip(),
+                    value=int(chal['value']),
+                    category=chal['category'].strip(),
                 )
             else:
                 # We ignore traling and leading whitespace when importing challenges
