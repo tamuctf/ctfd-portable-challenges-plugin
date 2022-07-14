@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import importlib
 import os
 import sys
 from flask import Flask
@@ -73,7 +74,6 @@ def tar_files(file_map, tarfile):
 
 def export_challenges(out_file, dst_attachments, src_attachments, visible_only, remove_flags, tarfile=None):
     from CTFd.models import Challenges, Flags, Tags, Hints, ChallengeFiles
-    from CTFd.plugins.dynamic_challenges import DynamicChallenge
 
     chals = Challenges.query.order_by(Challenges.value).all()
     chals_list = []
@@ -123,10 +123,32 @@ def export_challenges(out_file, dst_attachments, src_attachments, visible_only, 
             properties['tags'] = tags
 
         if chal.type == 'dynamic':
+            # Lazy load the DynamicChallenge plugin on encountering a challenge of that type.
+            try:
+                from CTFd.plugins.dynamic_challenges import DynamicChallenge
+            except ImportError as err:
+                print("Failed to import plugin for challenge type {}: {}".format(chal.type, err))
+                continue
+
             dynamic_challenge_obj = DynamicChallenge.query.filter_by(id=chal.id).first()
             properties['initial'] = dynamic_challenge_obj.initial
             properties['decay'] = dynamic_challenge_obj.decay
             properties['minimum'] = dynamic_challenge_obj.minimum
+
+        if chal.type == 'naumachia':
+            # Lazy load the Naumachia plugin on encountering a challenge of that type.
+            try:
+                # Here we use a fixed name, which is the repository name, even though it does
+                # not conform to a proper Python package name. Users may install the package
+                # using any file name they want, but this version of thsi plugin does not
+                # support it.
+                naumachia_plugin = importlib.import_module('.ctfd-naumachia-plugin', package="CTFd.plugins")
+            except ImportError as err:
+                print("Failed to import plugin for challenge type {}: {}".format(chal.type, err))
+                continue
+
+            dynamic_challenge_obj = naumachia_plugin.NaumachiaChallengeModel.query.filter_by(id=chal.id).first()
+            properties['naumachia_name'] = dynamic_challenge_obj.naumachia_name
 
         # These file locations will be partial paths in relation to the upload folder
         src_paths_rel = [file.location for file in ChallengeFiles.query.add_columns('location').filter_by(challenge_id=chal.id).all()]
