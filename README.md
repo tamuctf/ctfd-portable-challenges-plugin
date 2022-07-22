@@ -63,6 +63,7 @@ optional arguments:
 ```
 
 #### YAML Specification:
+
 Each challenge is a single document. Multiple documents can be present in one YAML file, separated by “---”, as specified by YAML 1.1. 
  
 Following is a list of top level keys with their usage.
@@ -89,7 +90,7 @@ Following is a list of top level keys with their usage.
 * Usage: The amount of point awarded for completion of the problem
 
 **type** (optional)
-* Type: Single line text (standard | dynamic)
+* Type: Single line text (standard | dynamic | naumachia)
 * Usage: Specify the type of the challenge. Default: standard
 
 **initial** (optional)
@@ -103,6 +104,12 @@ Following is a list of top level keys with their usage.
 **minimum** (optional)
 * Type: Positive integer
 * Usage: (dynamic challenge only) This is the lowest that the challenge can be worth
+
+**naumachia_name** (optional)
+* Type: Single line of text
+* Usage: (naumachia challenge only) Used in conjuction with the [ctfd-naumachia-plugin]. Name of the associated challenge in Naumachia
+
+[ctfd-naumachia-plugin]: https://github.com/nategraf/ctfd-naumachia-plugin
 
 **files** (optional)
 * Type: List of file paths (single line text)
@@ -155,6 +162,7 @@ Following is a list of top level keys with their usage.
 
 
 ##### Example YAML File
+
 ```YAML
 ---
 category: tristique
