@@ -117,6 +117,10 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 if 'type' not in hint:
                     hint['type'] = "standard"
 
+            requirements = None
+            if 'requirements' in chal:
+                requirements = chal['requirements']
+
             # Check what type the challenge is and create a DB object of the appropriate type.
             if chal['type'] == 'dynamic':
                 # Lazy load the DynamicChallenge plugin on encountering a challenge of that type.
@@ -145,7 +149,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     category=chal['category'].strip(),
                     initial=initial,
                     decay=decay,
-                    minimum=minimum
+                    minimum=minimum,
+                    requirements=requirements
                 )
             elif chal['type'] == 'naumachia':
                 # Lazy load the Naumachia plugin on encountering a challenge of that type.
@@ -167,6 +172,7 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     description=chal['description'].strip(),
                     value=int(chal['value']),
                     category=chal['category'].strip(),
+                    requirements=requirements
                 )
             else:
                 # We ignore traling and leading whitespace when importing challenges
@@ -174,7 +180,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     name=chal['name'].strip(),
                     description=chal['description'].strip(),
                     value=int(chal['value']),
-                    category=chal['category'].strip()
+                    category=chal['category'].strip(),
+                    requirements=requirements
                 )
 
             chal_dbobj.state = 'visible'
