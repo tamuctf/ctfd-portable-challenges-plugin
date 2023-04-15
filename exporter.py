@@ -150,6 +150,9 @@ def export_challenges(out_file, dst_attachments, src_attachments, visible_only, 
             dynamic_challenge_obj = naumachia_plugin.NaumachiaChallengeModel.query.filter_by(id=chal.id).first()
             properties['naumachia_name'] = dynamic_challenge_obj.naumachia_name
 
+        if chal.requirements:
+            properties['requirements'] = chal.requirements
+
         # These file locations will be partial paths in relation to the upload folder
         src_paths_rel = [file.location for file in ChallengeFiles.query.add_columns('location').filter_by(challenge_id=chal.id).all()]
 
