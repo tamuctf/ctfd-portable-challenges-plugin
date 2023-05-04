@@ -160,6 +160,10 @@ Following is a list of top level keys with their usage.
 * Usage: Maximum amount of attempts users receive. Leave at 0 for unlimited.
 * Default: 0
 
+**requirements** (optional)
+* Type: List of single line text items
+* Usage: Enumerate the names of challenges that are required by this challenge
+* Default: Empty
 
 ##### Example YAML File
 

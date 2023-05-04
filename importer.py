@@ -60,6 +60,30 @@ def process_args(args):
     return args
 
 
+def get_chal_id(name):
+    from CTFd.models import Challenges
+    chal = Challenges.query.filter_by(name=name).first()
+    if not chal:
+        return None
+
+    return chal.id
+
+
+def update_reqs(imported, requirements):
+    for chal in imported:
+        if not chal.name in requirements:
+            continue
+
+        chal_reqs = []
+        for req in requirements[chal.name]:
+            chal_id = get_chal_id(req)
+            if chal_id:
+                chal_reqs.append(chal_id)
+
+        if chal_reqs:
+            chal.requirements = {'prerequisites': chal_reqs}
+
+
 class MissingFieldError(Exception):
     def __init__(self, name):
         self.name = value
@@ -71,6 +95,8 @@ class MissingFieldError(Exception):
 def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
     from CTFd.models import db, Challenges, Flags, Tags, Hints, ChallengeFiles
     chals = []
+    imported = []
+    requirements = {}
     with open(in_file, 'r') as in_stream:
         chals = yaml.safe_load_all(in_stream)
 
@@ -117,9 +143,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 if 'type' not in hint:
                     hint['type'] = "standard"
 
-            requirements = None
             if 'requirements' in chal:
-                requirements = chal['requirements']
+                requirements[chal['name']] = chal['requirements']
 
             # Check what type the challenge is and create a DB object of the appropriate type.
             if chal['type'] == 'dynamic':
@@ -150,7 +175,6 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     initial=initial,
                     decay=decay,
                     minimum=minimum,
-                    requirements=requirements
                 )
             elif chal['type'] == 'naumachia':
                 # Lazy load the Naumachia plugin on encountering a challenge of that type.
@@ -172,7 +196,6 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     description=chal['description'].strip(),
                     value=int(chal['value']),
                     category=chal['category'].strip(),
-                    requirements=requirements
                 )
             else:
                 # We ignore traling and leading whitespace when importing challenges
@@ -181,7 +204,6 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                     description=chal['description'].strip(),
                     value=int(chal['value']),
                     category=chal['category'].strip(),
-                    requirements=requirements
                 )
 
             chal_dbobj.state = 'visible'
@@ -250,6 +272,7 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 continue
 
             print("Adding {}".format(chal['name'].encode('utf8')))
+            imported.append(chal_dbobj)
             db.session.add(chal_dbobj)
             db.session.commit()
 
@@ -289,6 +312,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                                                 location=os.path.relpath(dstpath, start=dst_attachments))
 
                     db.session.add(file_dbobj)
+
+        update_reqs(imported, requirements)
         db.session.commit()
 
     db.session.close()
