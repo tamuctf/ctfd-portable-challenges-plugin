@@ -261,7 +261,7 @@ You can test the plugin with the latest CTFd using Docker Compose.
 The CTFd version can be modified in the `Dockerfile`. 
 
 ```angular2html
-FROM ctfd/ctfd:mark-3.2.0
+FROM ctfd/ctfd:3.7.3
 ```
 
 Run the following command from the source repository to start CTFd with the plugin enabled:

@@ -14,6 +14,7 @@ from tempfile import TemporaryFile
 import shutil
 import argparse
 import gzip
+from sqlalchemy.sql import column
 
 # Try to load PyYAMP if it's installed, if not load the local version
 try:
@@ -114,7 +115,7 @@ def export_challenges(out_file, dst_attachments, src_attachments, visible_only, 
             properties['max_attempts'] = chal.max_attempts
 
         try:
-            tags = [tag.value for tag in Tags.query.add_columns('value').filter_by(challenge_id=chal.id).all()]
+            tags = [tag.value for tag in Tags.query.add_columns(column('value')).filter_by(challenge_id=chal.id).all()]
         except:
             # no tags are set
             tags = None
@@ -164,7 +165,7 @@ def export_challenges(out_file, dst_attachments, src_attachments, visible_only, 
 
 
         # These file locations will be partial paths in relation to the upload folder
-        src_paths_rel = [file.location for file in ChallengeFiles.query.add_columns('location').filter_by(challenge_id=chal.id).all()]
+        src_paths_rel = [file.location for file in ChallengeFiles.query.add_columns(column('location')).filter_by(challenge_id=chal.id).all()]
 
         file_map = {}
         file_list = []

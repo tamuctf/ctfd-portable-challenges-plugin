@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 import shutil
 import hashlib
 import argparse
+from sqlalchemy.sql import column
 
 # Try to load PyYAMP if it's installed, if not load the local version
 try:
@@ -230,11 +231,11 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
 
             for match in matching_chals:
                 if 'tags' in chal:
-                    tags_db = [tag.tag for tag in Tags.query.add_columns('tag').filter_by(challenge_id=match.id).all()]
+                    tags_db = [tag.tag for tag in Tags.query.add_columns(column('tag')).filter_by(challenge_id=match.id).all()]
                     if all([tag not in tags_db for tag in chal['tags']]):
                         continue
                 if 'files' in chal:
-                    files_db = [f.location for f in ChallengeFiles.query.add_columns('location').filter_by(challenge_id=match.id).all()]
+                    files_db = [f.location for f in ChallengeFiles.query.add_columns(column('location')).filter_by(challenge_id=match.id).all()]
                     if len(files_db) != len(chal['files']):
                         continue
 
