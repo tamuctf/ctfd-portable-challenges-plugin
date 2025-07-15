@@ -136,6 +136,10 @@ Following is a list of top level keys with their usage.
 **hints** (optional)
 * Type: List of hint objects
   
+  **title** (optional)
+  * Type: Single line text
+  * Usage: The title of the hint, which will be displayed to the user
+
   **hint**
   * Type: Single line text
   * Usage: The hint text

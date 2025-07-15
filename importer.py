@@ -140,7 +140,7 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                         norm_files.append(file)
                 chal['files'] = norm_files
 
-            for hint in chal['hints']:
+            for hint in chal.get('hints', []):
                 if 'type' not in hint:
                     hint['type'] = "standard"
 
@@ -286,8 +286,8 @@ def import_challenges(in_file, dst_attachments, exit_on_error=True, move=False):
                 flag_db = Flags(challenge_id=chal_dbobj.id, content=flag['flag'], type=flag['type'], data=flag['data'])
                 db.session.add(flag_db)
 
-            for hint in chal['hints']:
-                hint_db = Hints(challenge_id=chal_dbobj.id, content=hint['hint'], type=hint['type'],
+            for hint in chal.get('hints', []):
+                hint_db = Hints(challenge_id=chal_dbobj.id, title=hint.get('title'), content=hint['hint'], type=hint['type'],
                                 cost=int(hint['cost']))
                 db.session.add(hint_db)
 

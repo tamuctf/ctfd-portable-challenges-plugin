@@ -105,6 +105,8 @@ def export_challenges(out_file, dst_attachments, src_attachments, visible_only, 
         hints = []
         for hint_obj in hints_obj:
             hint = {'hint': hint_obj.content, 'type': hint_obj.type, 'cost': hint_obj.cost}
+            if hint_obj.title:
+                hint['title'] = hint_obj.title
             hints.append(hint)
         properties['hints'] = hints
 
